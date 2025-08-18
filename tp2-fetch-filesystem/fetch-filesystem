@@ -1,0 +1,552 @@
+// =============================================================================
+//                    TP 2 - FETCH Y FILESYSTEM 
+// =============================================================================
+// Programación III - UNER
+// Grupo: [NÚMERO]
+// Integrantes: [NOMBRES Y APELLIDOS]
+// =============================================================================
+
+// Importo las librerías necesarias para el proyecto
+const fs = require('fs').promises; // Uso la versión con promesas para async/await
+const path = require('path'); // Para manejar rutas de archivos de forma segura
+
+// Constantes globales - las defino aquí para poder cambiarlas fácilmente
+const API_BASE_URL = 'https://fakestoreapi.com';
+const PRODUCTS_FILE = 'products.json';
+
+/**
+ * Clase principal que maneja todas las operaciones con productos
+ * Decidí usar una clase porque agrupa todas las funcionalidades relacionadas
+ * y me permite mantener el estado (como la URL de la API y la ruta del archivo)
+ */
+class ProductManager {
+    constructor() {
+        this.apiUrl = API_BASE_URL;
+        // Uso path.join para crear la ruta completa del archivo de forma segura
+        this.filePath = path.join(__dirname, PRODUCTS_FILE);
+    }
+
+    /**
+     * Función auxiliar para crear separadores visuales en la consola
+     * La creé porque me parece importante que la salida sea clara y organizada
+     */
+    printSeparator(title = '', symbol = '=', length = 60) {
+        if (title) {
+            // Calculo el padding para centrar el título
+            const padding = Math.max(0, Math.floor((length - title.length - 2) / 2));
+            console.log(symbol.repeat(padding) + ` ${title} ` + symbol.repeat(padding));
+        } else {
+            console.log(symbol.repeat(length));
+        }
+    }
+
+    /**
+     * Función para mostrar productos de forma organizada
+     * Limito la cantidad mostrada para no sobrecargar la consola
+     */
+    displayProducts(products, title = 'Productos', maxShow = 3) {
+        console.log(`\n📦 ${title}:`);
+        console.log('─'.repeat(50));
+        
+        // Solo muestro los primeros productos para mantener la salida limpia
+        const showProducts = products.slice(0, maxShow);
+        showProducts.forEach((product, index) => {
+            // Uso emojis para hacer más visual la información con(win + .)
+            console.log(`${index + 1}. 🛍️  ${product.title}`);
+            console.log(`   💰 Precio: $${product.price}`);
+            console.log(`   📂 Categoría: ${product.category}`);
+            console.log(`   🆔 ID: ${product.id}`);
+            // Agrego separación entre productos excepto en el último
+            if (index < showProducts.length - 1) console.log('');
+        });
+        
+        // Informo si hay más productos que no se muestran
+        if (products.length > maxShow) {
+            console.log(`   ... y ${products.length - maxShow} productos más`);
+        }
+        console.log('─'.repeat(50));
+    }
+
+    /**
+     * Función para mostrar el resultado de cada operación de forma consistente
+     * Me ayuda a tener un feedback uniforme de todas las operaciones
+     */
+    displayOperation(operation, success, data = null, details = '') {
+        const emoji = success ? '✅' : '❌';
+        const status = success ? 'ÉXITO' : 'ERROR';
+        
+        console.log(`\n${emoji} ${operation} - ${status}`);
+        if (details) console.log(`   📝 ${details}`);
+        
+        // Muestro información adicional según el tipo de dato
+        if (success && data) {
+            if (Array.isArray(data)) {
+                console.log(`   📊 Cantidad: ${data.length} elementos`);
+            } else if (typeof data === 'object') {
+                // Muestro propiedades básicas del objeto si existen
+                console.log(`   🆔 ID: ${data.id || 'N/A'}`);
+                if (data.title) console.log(`   📌 Título: ${data.title}`);
+                if (data.price) console.log(`   💰 Precio: $${data.price}`);
+            }
+        }
+    }
+
+    /**
+     * Función auxiliar centralizada para hacer peticiones HTTP
+     * La creé para no repetir código y manejar errores de forma consistente
+     */
+    async makeRequest(url, options = {}) {
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    // Siempre envío Content-Type JSON para las peticiones
+                    'Content-Type': 'application/json',
+                    ...options.headers // Permite agregar headers adicionales
+                },
+                ...options
+            });
+            
+            // Verifico si la respuesta es exitosa antes de procesarla
+            if (!response.ok) {
+                throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Error en la petición:', error.message);
+            throw error; // Re-lanzo el error para que lo maneje la función que llama
+        }
+    }
+
+    /**
+     * 1. GET - Recuperar todos los productos de la API
+     * Esta es la operación más básica del CRUD
+     */
+    async getAllProducts() {
+        try {
+            console.log('🔄 Obteniendo todos los productos...');
+            const products = await this.makeRequest(`${this.apiUrl}/products`);
+            
+            this.displayOperation(
+                'GET Todos los Productos', 
+                true, 
+                products, 
+                `Se obtuvieron ${products.length} productos de la API`
+            );
+            
+            // Muestro solo los primeros para no saturar la consola
+            this.displayProducts(products, 'Primeros 3 Productos');
+            return products;
+        } catch (error) {
+            this.displayOperation('GET Todos los Productos', false, null, error.message);
+            return null; // Retorno null para indicar fallo
+        }
+    }
+
+    /**
+     * 2. GET - Recuperar número limitado de productos
+     * Uso query parameters para limitar la cantidad
+     */
+    async getLimitedProducts(limit = 5) {
+        try {
+            console.log(`🔄 Obteniendo ${limit} productos limitados...`);
+            // Uso query parameter ?limit= como indica la documentación de la API
+            const products = await this.makeRequest(`${this.apiUrl}/products?limit=${limit}`);
+            
+            this.displayOperation(
+                'GET Productos Limitados', 
+                true, 
+                products, 
+                `Se obtuvieron ${products.length} productos con límite de ${limit}`
+            );
+            
+            this.displayProducts(products, 'Productos Limitados', limit);
+            return products;
+        } catch (error) {
+            this.displayOperation('GET Productos Limitados', false, null, error.message);
+            return null;
+        }
+    }
+
+    /**
+     * 3. Persistir datos en archivo JSON local
+     * Uso JSON.stringify con indentación para que sea legible
+     */
+    async saveProductsToFile(products) {
+        try {
+            console.log('🔄 Guardando productos en archivo local...');
+            // Uso null, 2 para formatear el JSON con indentación
+            await fs.writeFile(this.filePath, JSON.stringify(products, null, 2), 'utf8');
+            
+            this.displayOperation(
+                'Guardar en Archivo JSON', 
+                true, 
+                products, 
+                `${products.length} productos guardados en ${PRODUCTS_FILE}`
+            );
+        } catch (error) {
+            this.displayOperation('Guardar en Archivo JSON', false, null, error.message);
+        }
+    }
+
+    /**
+     * 4. POST - Agregar nuevo producto a la API
+     * Envío los datos en el body como JSON
+     */
+    async addNewProduct(productData) {
+        try {
+            console.log('🔄 Agregando nuevo producto...');
+            const newProduct = await this.makeRequest(`${this.apiUrl}/products`, {
+                method: 'POST',
+                body: JSON.stringify(productData) // Convierto el objeto a JSON
+            });
+            
+            this.displayOperation(
+                'POST Nuevo Producto', 
+                true, 
+                newProduct, 
+                'Producto creado exitosamente en la API'
+            );
+            
+            return newProduct;
+        } catch (error) {
+            this.displayOperation('POST Nuevo Producto', false, null, error.message);
+            return null;
+        }
+    }
+
+    /**
+     * 5. GET - Buscar producto por ID específico
+     * Uso el ID como parámetro en la URL
+     */
+    async getProductById(id) {
+        try {
+            console.log(`🔄 Buscando producto con ID: ${id}...`);
+            // El ID va en la URL como parámetro de ruta
+            const product = await this.makeRequest(`${this.apiUrl}/products/${id}`);
+            
+            this.displayOperation(
+                'GET Producto por ID', 
+                true, 
+                product, 
+                `Producto encontrado con ID ${id}`
+            );
+            
+            return product;
+        } catch (error) {
+            this.displayOperation('GET Producto por ID', false, null, error.message);
+            return null;
+        }
+    }
+
+    /**
+     * 6. DELETE - Eliminar producto de la API
+     * Solo necesito enviar el método DELETE con el ID
+     */
+    async deleteProduct(id) {
+        try {
+            console.log(`🔄 Eliminando producto con ID: ${id}...`);
+            const result = await this.makeRequest(`${this.apiUrl}/products/${id}`, {
+                method: 'DELETE'
+            });
+            
+            this.displayOperation(
+                'DELETE Producto', 
+                true, 
+                result, 
+                `Producto con ID ${id} eliminado de la API`
+            );
+            
+            return result;
+        } catch (error) {
+            this.displayOperation('DELETE Producto', false, null, error.message);
+            return null;
+        }
+    }
+
+    /**
+     * 7. PUT - Modificar producto existente en la API
+     * Envío los datos actualizados en el body
+     */
+    async updateProduct(id, productData) {
+        try {
+            console.log(`🔄 Modificando producto con ID: ${id}...`);
+            const updatedProduct = await this.makeRequest(`${this.apiUrl}/products/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(productData)
+            });
+            
+            this.displayOperation(
+                'PUT Actualizar Producto', 
+                true, 
+                updatedProduct, 
+                `Producto con ID ${id} actualizado exitosamente`
+            );
+            
+            return updatedProduct;
+        } catch (error) {
+            this.displayOperation('PUT Actualizar Producto', false, null, error.message);
+            return null;
+        }
+    }
+
+    /**
+     * FileSystem - Leer productos del archivo local
+     * Manejo el caso donde el archivo no existe
+     */
+    async readProductsFromFile() {
+        try {
+            const data = await fs.readFile(this.filePath, 'utf8');
+            return JSON.parse(data);
+        } catch (error) {
+            // Si el archivo no existe, retorno array vacío en lugar de error
+            if (error.code === 'ENOENT') {
+                console.log('📄 Archivo no existe, retornando array vacío');
+                return [];
+            }
+            throw error; // Otros errores sí los propago
+        }
+    }
+
+    /**
+     * FileSystem - Agregar producto al archivo local
+     * Genero un ID único para el nuevo producto
+     */
+    async addProductToLocalFile(newProduct) {
+        try {
+            console.log('🔄 Agregando producto al archivo local...');
+            const existingProducts = await this.readProductsFromFile();
+            
+            // Genero un ID único basado en el máximo existente + 1
+            const maxId = existingProducts.length > 0 
+                ? Math.max(...existingProducts.map(p => p.id || 0))
+                : 0;
+            
+            const productToAdd = {
+                id: maxId + 1,
+                ...newProduct // Uso spread operator para copiar todas las propiedades
+            };
+            
+            existingProducts.push(productToAdd);
+            await this.saveProductsToFile(existingProducts);
+            
+            this.displayOperation(
+                'Agregar Producto Local', 
+                true, 
+                productToAdd, 
+                'Producto agregado al archivo local exitosamente'
+            );
+            
+            return productToAdd;
+        } catch (error) {
+            this.displayOperation('Agregar Producto Local', false, null, error.message);
+            return null;
+        }
+    }
+
+    /**
+     * FileSystem - Eliminar productos con precio superior al límite
+     * Uso filter() para crear un nuevo array con solo los productos válidos
+     */
+    async removeProductsAbovePrice(maxPrice) {
+        try {
+            console.log(`🔄 Eliminando productos con precio superior a $${maxPrice}...`);
+            const products = await this.readProductsFromFile();
+            const initialCount = products.length;
+            
+            // Filtro productos que tengan precio menor o igual al máximo
+            const filteredProducts = products.filter(product => {
+                const price = parseFloat(product.price);
+                // Incluyo solo si el precio es válido y menor/igual al máximo
+                return !isNaN(price) && price <= maxPrice;
+            });
+            
+            const removedCount = initialCount - filteredProducts.length;
+            await this.saveProductsToFile(filteredProducts);
+            
+            console.log(`\n✅ Filtrado de Productos por Precio - ÉXITO`);
+            console.log(`   📊 Productos eliminados: ${removedCount}`);
+            console.log(`   📦 Productos restantes: ${filteredProducts.length}`);
+            console.log(`   💰 Precio máximo permitido: $${maxPrice}`);
+            
+            return {
+                removed: removedCount,
+                remaining: filteredProducts.length,
+                products: filteredProducts
+            };
+        } catch (error) {
+            this.displayOperation('Filtrado por Precio', false, null, error.message);
+            return null;
+        }
+    }
+
+    /**
+     * Función adicional para mostrar estadísticas del archivo
+     * La agregué para tener mejor visibilidad de los datos locales
+     */
+    async showLocalFileStats() {
+        console.log('\n');
+        this.printSeparator('ESTADÍSTICAS DEL ARCHIVO LOCAL', '█', 60);
+        
+        try {
+            const products = await this.readProductsFromFile();
+            
+            if (products.length === 0) {
+                console.log('\n📄 El archivo está vacío o no existe\n');
+                return;
+            }
+            
+            // Calculo estadísticas de precios
+            const prices = products.map(p => parseFloat(p.price)).filter(p => !isNaN(p));
+            
+            console.log(`\n📊 RESUMEN GENERAL:`);
+            console.log(`   📦 Total de productos: ${products.length}`);
+            
+            if (prices.length > 0) {
+                const average = prices.reduce((a, b) => a + b, 0) / prices.length;
+                console.log(`   💰 Precio promedio: $${average.toFixed(2)}`);
+                console.log(`   💎 Precio máximo: $${Math.max(...prices).toFixed(2)}`);
+                console.log(`   💸 Precio mínimo: $${Math.min(...prices).toFixed(2)}`);
+            }
+            
+            // Muestro listado completo de productos
+            console.log(`\n🛍️ LISTADO DE PRODUCTOS:`);
+            console.log('─'.repeat(60));
+            
+            products.forEach((product, index) => {
+                const number = (index + 1).toString().padStart(2, '0');
+                // Limito la longitud del título para mantener formato
+                const title = product.title.length > 35 
+                    ? product.title.substring(0, 35) + '...' 
+                    : product.title;
+                const price = `$${parseFloat(product.price).toFixed(2)}`;
+                
+                // Uso padEnd y padStart para alinear columnas
+                console.log(`${number}. ${title.padEnd(38)} ${price.padStart(8)}`);
+            });
+            
+            console.log('─'.repeat(60));
+        } catch (error) {
+            this.displayOperation('Mostrar Estadísticas', false, null, error.message);
+        }
+    }
+}
+
+/**
+ * Función principal que ejecuta todas las tareas del TP
+ * La organicé en dos partes: API y FileSystem, como pide la consigna
+ */
+async function main() {
+    const productManager = new ProductManager();
+    
+    // Header principal del programa
+    console.log('\n');
+    console.log('█'.repeat(70));
+    console.log('█'.repeat(20) + '  TP 2 - FETCH Y FILESYSTEM  ' + '█'.repeat(20));
+    console.log('█'.repeat(70));
+    console.log('📚 Programación III - UNER');
+    console.log('🎯 Trabajo Práctico de APIs y Manejo de Archivos');
+    console.log('█'.repeat(70));
+    
+    try {
+        // =================================================================
+        // PARTE 1: OPERACIONES CON LA API
+        // =================================================================
+        console.log('\n');
+        productManager.printSeparator('PARTE 1: OPERACIONES API', '▓', 60);
+        
+        // 1. Obtener todos los productos
+        const allProducts = await productManager.getAllProducts();
+        await new Promise(resolve => setTimeout(resolve, 1000)); 
+        
+        // 2. Obtener productos limitados (5)
+        const limitedProducts = await productManager.getLimitedProducts(5);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 3. Guardar productos en archivo JSON
+        if (limitedProducts) {
+            await productManager.saveProductsToFile(limitedProducts);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 4. Crear nuevo producto
+        const newProductData = {
+            title: 'Producto de Prueba TP2',
+            price: 25.99,
+            description: 'Producto creado para el TP2 de Programación III',
+            image: 'https://fakestoreapi.com/img/placeholder.jpg',
+            category: 'test'
+        };
+        
+        await productManager.addNewProduct(newProductData);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 5. Buscar producto por ID
+        await productManager.getProductById(1);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 6. Eliminar producto
+        await productManager.deleteProduct(1);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 7. Actualizar producto
+        const updateData = {
+            title: 'Producto Modificado TP2',
+            price: 15.99,
+            description: 'Producto modificado en el TP2'
+        };
+        await productManager.updateProduct(2, updateData);
+        
+        // =================================================================
+        // PARTE 2: OPERACIONES CON FILESYSTEM
+        // =================================================================
+        console.log('\n');
+        productManager.printSeparator('PARTE 2: OPERACIONES FILESYSTEM', '▓', 60);
+        
+        // 8. Agregar producto al archivo local
+        const localProduct = {
+            title: 'Producto Local TP2',
+            price: 45.00,
+            description: 'Producto agregado directamente al archivo local',
+            category: 'local'
+        };
+        
+        await productManager.addProductToLocalFile(localProduct);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 9. Mostrar estadísticas del archivo
+        await productManager.showLocalFileStats();
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // 10. Eliminar productos caros (precio > $30)
+        await productManager.removeProductsAbovePrice(30);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 11. Mostrar estadísticas finales
+        await productManager.showLocalFileStats();
+        
+        // Footer final
+        console.log('\n');
+        console.log('█'.repeat(70));
+        console.log('█'.repeat(25) + '  ✅ COMPLETADO  ' + '█'.repeat(25));
+        console.log('█'.repeat(70));
+        console.log('🎉 TP2 ejecutado exitosamente');
+        console.log('📄 Archivo products.json generado correctamente');
+        console.log('✨ Todas las funcionalidades implementadas');
+        console.log('█'.repeat(70));
+        
+    } catch (error) {
+        // Manejo de errores globales
+        console.error('\n💥 Error general en la ejecución:', error.message);
+        console.log('█'.repeat(70));
+    }
+}
+
+// Ejecuto el programa solo si es el archivo principal
+// Esto permite importar la clase sin ejecutar main()
+if (require.main === module) {
+    main().catch(console.error);
+}
+
+// Exporto la clase para poder usarla en otros archivos
+module.exports = ProductManager;
