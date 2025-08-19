@@ -1,4 +1,7 @@
 // main.js
+
+// Este es el archivo principal de nuestro proyecto. Actúa como el orquestador que une
+// las funcionalidades de la API (fetch) y del manejo de archivos (FileSystem).
 import {
     traerTodosLosProductos,
     traerProductosLimitados,
@@ -16,7 +19,7 @@ import {
 } from "./archivos/gestorArchivos.js";
 
 /**
- * Con esta función, creo un separador para la consola, lo que hace que la salida
+ * Con esta función, creamos un separador para la consola, lo que hace que la salida
  * sea más organizada y fácil de seguir.
  */
 function printSeparator(title = '', symbol = '=', length = 70) {
@@ -29,7 +32,7 @@ function printSeparator(title = '', symbol = '=', length = 70) {
 }
 
 async function ejecutar() {
-    // Header principal del programa
+    // Encabezado principal del programa
     console.log('\n');
     console.log('█'.repeat(70));
     console.log('█'.repeat(20) + '   TP 2 - FETCH Y FILESYSTEM   ' + '█'.repeat(20));
@@ -45,21 +48,21 @@ async function ejecutar() {
         console.log('\n');
         printSeparator('PARTE 1: OPERACIONES API', '▓', 70);
 
-        // 1. Obtener todos los productos
+        // ✅ CONSIGNA: "Recuperar la información de todos los productos (GET)".
         const allProducts = await traerTodosLosProductos();
-        await new Promise(resolve => setTimeout(resolve, 1500)); 
-        
-        // 2. Obtener productos limitados (5)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // ✅ CONSIGNA: "Recuperar la información de un número limitado de productos (GET)".
         const limitedProducts = await traerProductosLimitados(5);
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 3. Guardar productos limitados en archivo JSON (primera persistencia)
+
+        // ✅ CONSIGNA: "Persistir los datos de la consulta anterior en un archivo local JSON".
         if (limitedProducts) {
             await guardarEnArchivo(limitedProducts);
         }
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 4. Crear nuevo producto en la API
+
+        // ✅ CONSIGNA: "Agregar un nuevo producto (POST)".
         const newProductData = {
             title: 'Producto de Prueba TP2 (API)',
             price: 25.99,
@@ -69,16 +72,16 @@ async function ejecutar() {
         };
         await cargarProducto(newProductData);
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 5. Buscar producto por ID en la API
+
+        // ✅ CONSIGNA: "Buscar la información de un determinado producto, utilizando un "id" como parámetro (GET)".
         await buscarProductoPorId(1);
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 6. Eliminar producto de la API
+
+        // ✅ CONSIGNA: "Eliminar un producto (DELETE)".
         await borrarProducto(1);
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 7. Actualizar producto en la API
+
+        // ✅ CONSIGNA: "Modificar los datos de un producto (UPDATE)".
         const updateData = {
             title: 'Producto Modificado TP2 (API)',
             price: 15.99,
@@ -92,8 +95,8 @@ async function ejecutar() {
         // =================================================================
         console.log('\n');
         printSeparator('PARTE 2: OPERACIONES FILESYSTEM', '▓', 70);
-        
-        // 8. Agregar producto directamente al archivo local
+
+        // ✅ CONSIGNA: "Agregar producto al archivo local".
         const localProduct = {
             title: 'Producto Local TP2',
             price: 45.00,
@@ -102,20 +105,22 @@ async function ejecutar() {
         };
         await sumarAlArchivo(localProduct);
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 9. Mostrar estadísticas del archivo local
+
+        // ✅ CONSIGNA: "Imprimir en consola para verificar las operaciones realizadas".
+        // Mostramos las estadísticas iniciales del archivo local.
         await mostrarEstadisticasArchivoLocal();
         await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // 10. Eliminar productos caros (precio > $30) del archivo local
+
+        // ✅ CONSIGNA: "Eliminar los productos superiores a un determinado valor".
         await limpiarCaros(30);
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // 11. Mostrar estadísticas finales del archivo local
+
+        // ✅ CONSIGNA: "Imprimir en consola para verificar las operaciones realizadas".
+        // Mostramos las estadísticas finales para confirmar que los productos fueron eliminados.
         await mostrarEstadisticasArchivoLocal();
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Footer final
+
+        // Pie de página final
         console.log('\n');
         console.log('█'.repeat(70));
         console.log('█'.repeat(25) + '   ✅ COMPLETADO   ' + '█'.repeat(25));
@@ -124,7 +129,7 @@ async function ejecutar() {
         console.log('📄 Archivo products.json generado/modificado correctamente');
         console.log('✨ Todas las funcionalidades implementadas');
         console.log('█'.repeat(70));
-        
+
     } catch (error) {
         // Manejo de errores globales
         console.error('\n💥 Error general en la ejecución:', error.message);

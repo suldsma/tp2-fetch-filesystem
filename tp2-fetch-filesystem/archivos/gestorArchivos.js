@@ -1,14 +1,15 @@
 // archivos/gestorArchivos.js
+
+// Este archivo se encarga del manejo de archivos con FileSystem (fs), como se pide en la consigna del TP.
 import fs from "fs/promises";
-import path from 'path'; // Para manejar rutas de archivos de forma segura
+import path from 'path';
 
 const PRODUCTS_FILE = 'products.json';
-const filePath = path.join(process.cwd(), PRODUCTS_FILE); // process.cwd() para la ruta base del proyecto
+const filePath = path.join(process.cwd(), PRODUCTS_FILE);
 
 /**
- * Esta es una función auxiliar  para hacer que los títulos en la consola
- * y se vean más bonitos y organizados. Me ayuda a separar visualmente las diferentes
- * partes del programa.
+ * Función auxiliar para que la salida en la consola sea más legible.
+ * Nos ayuda a separar visualmente las diferentes partes del programa.
  */
 function printSeparator(title = '', symbol = '=', length = 60) {
     if (title) {
@@ -20,6 +21,7 @@ function printSeparator(title = '', symbol = '=', length = 60) {
 }
 
 /**
+ * ✅ CONSIGNA: "Imprimir en consola para verificar las operaciones realizadas".
  * Esta función es parecida a la de la API. La creamos para mostrar los
  * resultados de cada operación de archivo de una manera consistente, con emojis
  * y un formato claro, para saber rápidamente si todo salió bien.
@@ -27,10 +29,10 @@ function printSeparator(title = '', symbol = '=', length = 60) {
 function displayOperation(operation, success, data = null, details = '') {
     const emoji = success ? '✅' : '❌';
     const status = success ? 'ÉXITO' : 'ERROR';
-    
+
     console.log(`\n${emoji} ${operation} - ${status}`);
     if (details) console.log(`   📝 ${details}`);
-    
+
     if (success && data) {
         if (Array.isArray(data)) {
             console.log(`   📊 Cantidad: ${data.length} elementos`);
@@ -43,10 +45,9 @@ function displayOperation(operation, success, data = null, details = '') {
 }
 
 /**
- * Esta es una función interna que me ayuda a leer el archivo JSON.
- * Lo más importante es que manejo un posible error: si el archivo no existe,
- * en lugar de fallar, devuelvo un array vacío. Esto evita que el programa se
- * detenga y me permite agregar datos desde cero si es necesario.
+ * Esta es una función interna que nos permite leer el archivo JSON.
+ * Es crucial que maneje el error si el archivo no existe, devolviendo un array vacío.
+ * Esto evita que el programa falle y nos permite empezar con un archivo vacío si es necesario.
  */
 async function readProductsFromFile() {
     try {
@@ -62,9 +63,10 @@ async function readProductsFromFile() {
 }
 
 /**
- * Con esta función guardo los productos en el archivo local.
- * Uso `JSON.stringify` para convertir el array de objetos a texto y le doy un formato
- * legible (`null, 2`) para que sea fácil de leer.
+ * ✅ CONSIGNA: "Persistir los datos de la consulta anterior en un archivo local JSON".
+ * Con esta función, cumplimos con la consigna de guardar los productos en un archivo JSON local.
+ * Usamos `JSON.stringify` para convertir el array de objetos a texto y le damos un formato
+ * legible para que sea fácil de leer por si se necesitara revisarlo manualmente.
  */
 export async function guardarEnArchivo(datos) {
     try {
@@ -82,20 +84,19 @@ export async function guardarEnArchivo(datos) {
 }
 
 /**
- * Esta es la función para agregar un producto al archivo local sin usar la API.
- * Lo primero que hago es leer el archivo existente para no sobreescribirlo.
- * Luego, calculo un nuevo ID para el producto y lo agrego al array.
- * Finalmente, vuelvo a guardar el array completo en el archivo.
+ * ✅ CONSIGNA: "Agregar producto al archivo local".
+ * Implementamos esta función para añadir un nuevo producto directamente al archivo local sin pasar por la API.
+ * Primero leemos los datos existentes, calculamos un nuevo ID y luego guardamos la lista actualizada.
  */
 export async function sumarAlArchivo(prodNuevo) {
     try {
         console.log('🔄 Agregando producto al archivo local...');
         const existingProducts = await readProductsFromFile();
-        
+
         const maxId = existingProducts.length > 0
             ? Math.max(...existingProducts.map(p => p.id || 0))
             : 0;
-        
+
         const productToAdd = {
             id: maxId + 1,
             ...prodNuevo
@@ -103,7 +104,7 @@ export async function sumarAlArchivo(prodNuevo) {
 
         existingProducts.push(productToAdd);
         await guardarEnArchivo(existingProducts);
-        
+
         displayOperation(
             'Agregar Producto Local',
             true,
@@ -118,25 +119,25 @@ export async function sumarAlArchivo(prodNuevo) {
 }
 
 /**
- * Aquí implemento la consigna de eliminar productos con precio alto.
- * Primero leo el archivo, luego uso el método `filter()` para crear un nuevo
- * array que solo incluya los productos con un precio menor o igual al tope.
- * Finalmente, guardo ese nuevo array filtrado en el archivo.
+ * ✅ CONSIGNA: "Eliminar los productos superiores a un determinado valor".
+ * Para cumplir con esta consigna, leemos el archivo y usamos el método `filter()` para crear un nuevo
+ * array que solo incluya los productos con un precio menor o igual al valor máximo.
+ * Finalmente, guardamos el array filtrado en el archivo.
  */
 export async function limpiarCaros(tope) {
     try {
         console.log(`🔄 Eliminando productos con precio superior a $${tope} del archivo local...`);
         const products = await readProductsFromFile();
         const initialCount = products.length;
-        
+
         const filteredProducts = products.filter(p => {
             const price = parseFloat(p.price);
             return !isNaN(price) && price <= tope;
         });
-        
+
         const removedCount = initialCount - filteredProducts.length;
         await guardarEnArchivo(filteredProducts);
-        
+
         displayOperation(
             'Filtrado por Precio (Local)',
             true,
@@ -155,48 +156,48 @@ export async function limpiarCaros(tope) {
 }
 
 /**
- * Esta función es una adición que me pareció útil para el TP. Me permite
- * mostrar un resumen de los datos que tengo en el archivo, como el total de productos,
- * precios promedio, máximo y mínimo. Esto me sirve para verificar que las
- * operaciones anteriores funcionaron correctamente.
+ * ✅ CONSIGNA: "Imprimir en consola para verificar las operaciones realizadas".
+ * Esta función fue una adición que consideramos útil para el TP. Nos permite
+ * mostrar un resumen del archivo local, lo que nos ayuda a verificar que todas
+ * las operaciones de FileSystem se realizaron correctamente.
  */
 export async function mostrarEstadisticasArchivoLocal() {
     console.log('\n');
     printSeparator('ESTADÍSTICAS DEL ARCHIVO LOCAL', '█', 60);
-    
+
     try {
         const products = await readProductsFromFile();
-        
+
         if (products.length === 0) {
             console.log('\n📄 El archivo está vacío o no existe.\n');
             return;
         }
-        
+
         const prices = products.map(p => parseFloat(p.price)).filter(p => !isNaN(p));
-        
+
         console.log(`\n📊 RESUMEN GENERAL:`);
         console.log(`   📦 Total de productos: ${products.length}`);
-        
+
         if (prices.length > 0) {
             const average = prices.reduce((a, b) => a + b, 0) / prices.length;
             console.log(`   💰 Precio promedio: $${average.toFixed(2)}`);
             console.log(`   💎 Precio máximo: $${Math.max(...prices).toFixed(2)}`);
             console.log(`   💸 Precio mínimo: $${Math.min(...prices).toFixed(2)}`);
         }
-        
+
         console.log(`\n🛍️ LISTADO DE PRODUCTOS:`);
         console.log('─'.repeat(60));
-        
+
         products.forEach((product, index) => {
             const number = (index + 1).toString().padStart(2, '0');
             const title = product.title && product.title.length > 35
                 ? product.title.substring(0, 35) + '...'
                 : product.title || 'N/A';
             const price = product.price ? `$${parseFloat(product.price).toFixed(2)}` : 'N/A';
-            
+
             console.log(`${number}. ${title.padEnd(38)} ${price.padStart(8)}`);
         });
-        
+
         console.log('─'.repeat(60));
     } catch (error) {
         displayOperation('Mostrar Estadísticas (Local)', false, null, error.message);

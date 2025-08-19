@@ -3,18 +3,16 @@
 const API_BASE_URL = 'https://fakestoreapi.com';
 
 /**
- * Esta es una función para darle un formato claro y consistente
- * a todos los mensajes que se muestran en la consola. Así me aseguro de
- * que la salida sea legible y fácil de entender.
- * uso emogis (Windows + .) para darle un toque visual.
+ * Función auxiliar para dar formato a la salida en la consola.
+ * Usamos emojis y un formato consistente para mostrar el estado de las operaciones.
  */
 function displayOperation(operation, success, data = null, details = '') {
     const emoji = success ? '✅' : '❌';
     const status = success ? 'ÉXITO' : 'ERROR';
-    
+
     console.log(`\n${emoji} ${operation} - ${status}`);
     if (details) console.log(`   📝 ${details}`);
-    
+
     if (success && data) {
         if (Array.isArray(data)) {
             console.log(`   📊 Cantidad: ${data.length} elementos`);
@@ -27,11 +25,11 @@ function displayOperation(operation, success, data = null, details = '') {
 }
 
 /**
- * Esta la función "cerebro" para las peticiones a la API.
- * Decidí crearla para centralizar todo el manejo de errores. Así,
- * si una petición falla por cualquier motivo (ej. la API no responde,
- * el ID no existe), puedo capturar el error en un solo lugar y
- * luego mostrarlo de forma clara. Esto me evita repetir código.
+ * Esta es la función principal para las peticiones a la API.
+ * La creamos para centralizar el manejo de errores y la lógica de las peticiones.
+ * De esta forma, si una solicitud falla por cualquier motivo (por ejemplo, la API no responde o el ID no existe),
+ * podemos capturar el error en un solo lugar y mostrarlo de manera clara.
+ * Esto nos ayuda a evitar la repetición de código y mantiene nuestra aplicación más organizada.
  */
 async function makeRequest(url, options = {}) {
     try {
@@ -42,12 +40,12 @@ async function makeRequest(url, options = {}) {
             },
             ...options
         });
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`HTTP Error: ${response.status} - ${response.statusText}. Detalles: ${errorText}`);
         }
-        
+
         return await response.json();
     } catch (error) {
         throw error;
@@ -55,18 +53,20 @@ async function makeRequest(url, options = {}) {
 }
 
 /**
- * Con esta función obtenemos todos los productos de la API.
- * Es una operación GET simple, y uso la función makeRequest para
- * hacer la llamada y manejar cualquier problema que pueda surgir.
+ * ✅ CONSIGNA: "Recuperar la información de todos los productos (GET)".
+ * Con esta función, obtenemos todos los productos de la API.
+ * Realizamos una operación GET simple y utilizamos la función `makeRequest` para
+ * centralizar la llamada y manejar cualquier problema que pueda surgir.
+ * Esto asegura que nuestra lógica de peticiones sea consistente y robusta.
  */
 export async function traerTodosLosProductos() {
     try {
         console.log('🔄 Obteniendo todos los productos de la API...');
         const products = await makeRequest(`${API_BASE_URL}/products`);
         displayOperation(
-            'GET Todos los Productos (API)', 
-            true, 
-            products, 
+            'GET Todos los Productos (API)',
+            true,
+            products,
             `Se obtuvieron ${products.length} productos de la API`
         );
         return products;
@@ -77,18 +77,18 @@ export async function traerTodosLosProductos() {
 }
 
 /**
- * Aquí traemos una cantidad limitada de productos, según lo pide
- * la consigna del TP. La cantidad es un parámetro, lo que hace que
- * la función sea flexible y reutilizable.
+ * ✅ CONSIGNA: "Recuperar la información de un número limitado de productos (GET)".
+ * Para cumplir con esta consigna, creamos una función que recupera un número limitado de productos.
+ * Decidimos que la cantidad sea un parámetro, lo que hace que la función sea flexible y reutilizable para futuras necesidades del proyecto.
  */
 export async function traerProductosLimitados(cantidad = 5) {
     try {
         console.log(`🔄 Obteniendo ${cantidad} productos limitados de la API...`);
         const products = await makeRequest(`${API_BASE_URL}/products?limit=${cantidad}`);
         displayOperation(
-            'GET Productos Limitados (API)', 
-            true, 
-            products, 
+            'GET Productos Limitados (API)',
+            true,
+            products,
             `Se obtuvieron ${products.length} productos con límite de ${cantidad}`
         );
         return products;
@@ -99,8 +99,9 @@ export async function traerProductosLimitados(cantidad = 5) {
 }
 
 /**
- * Con esta función cargo un producto nuevo usando el método POST.
- * Le paso el objeto del producto en el cuerpo de la petición.
+ * ✅ CONSIGNA: "Agregar un nuevo producto (POST)".
+ * Con esta función cargamos un producto nuevo usando el método POST.
+ * Pasamos el objeto del producto en el cuerpo de la petición para que la API lo cree.
  */
 export async function cargarProducto(prod) {
     try {
@@ -110,9 +111,9 @@ export async function cargarProducto(prod) {
             body: JSON.stringify(prod)
         });
         displayOperation(
-            'POST Nuevo Producto (API)', 
-            true, 
-            newProduct, 
+            'POST Nuevo Producto (API)',
+            true,
+            newProduct,
             'Producto creado exitosamente en la API'
         );
         return newProduct;
@@ -123,6 +124,7 @@ export async function cargarProducto(prod) {
 }
 
 /**
+ * ✅ CONSIGNA: "Buscar la información de un determinado producto, utilizando un 'id' como parámetro (GET)".
  * Esta función es para buscar un producto específico usando su ID.
  * También usa una petición GET, pero con el ID en la URL.
  */
@@ -131,9 +133,9 @@ export async function buscarProductoPorId(id) {
         console.log(`🔄 Buscando producto con ID: ${id} en la API...`);
         const product = await makeRequest(`${API_BASE_URL}/products/${id}`);
         displayOperation(
-            'GET Producto por ID (API)', 
-            true, 
-            product, 
+            'GET Producto por ID (API)',
+            true,
+            product,
             `Producto encontrado con ID ${id}`
         );
         return product;
@@ -144,8 +146,9 @@ export async function buscarProductoPorId(id) {
 }
 
 /**
+ * ✅ CONSIGNA: "Eliminar un producto (DELETE)".
  * Aquí usamos el método DELETE para eliminar un producto de la API
- * basándome en su ID. Es una operación simple y directa.
+ * basándonos en su ID. Es una operación simple y directa.
  */
 export async function borrarProducto(id) {
     try {
@@ -154,9 +157,9 @@ export async function borrarProducto(id) {
             method: 'DELETE'
         });
         displayOperation(
-            'DELETE Producto (API)', 
-            true, 
-            result, 
+            'DELETE Producto (API)',
+            true,
+            result,
             `Producto con ID ${id} eliminado de la API`
         );
         return result;
@@ -167,8 +170,9 @@ export async function borrarProducto(id) {
 }
 
 /**
- * Finalmente, esta función nos permite editar un producto.
- * Utilizo el método PUT y le envío los cambios en el cuerpo de la petición.
+ * ✅ CONSIGNA: "Modificar los datos de un producto (UPDATE)".
+ * Esta función nos permite editar un producto.
+ * Utilizamos el método PUT y enviamos los cambios en el cuerpo de la petición.
  * Esto nos permite actualizar los datos de un producto existente.
  */
 export async function editarProducto(id, cambios) {
@@ -179,9 +183,9 @@ export async function editarProducto(id, cambios) {
             body: JSON.stringify(cambios)
         });
         displayOperation(
-            'PUT Actualizar Producto (API)', 
-            true, 
-            updatedProduct, 
+            'PUT Actualizar Producto (API)',
+            true,
+            updatedProduct,
             `Producto con ID ${id} actualizado exitosamente`
         );
         return updatedProduct;
