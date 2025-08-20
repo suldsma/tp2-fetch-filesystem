@@ -135,6 +135,52 @@ async function ejecutar() {
         console.error('\n💥 Error general en la ejecución:', error.message);
         console.log('█'.repeat(70));
     }
+    // =================================================================
+    // PARTE 3: FUNCIONES EXTRA Y CIERRE
+    // =================================================================
+    console.log('\n');
+    printSeparator('PARTE 3: FUNCIONES EXTRA', '★', 70);
+
+    try {
+        // 📊 Estadísticas avanzadas
+        await estadisticasAvanzadas();
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // 🔎 Buscar productos por categoría
+        const ropa = await buscarPorCategoria("clothing");
+        console.log("\n👕 Productos en categoría 'clothing':");
+        console.table(ropa);
+
+        // 🔎 Buscar productos por título
+        const camisas = await buscarPorTitulo("shirt");
+        console.log("\n👔 Productos que contienen 'shirt' en el título:");
+        console.table(camisas);
+
+        // 🔎 Filtrar por rating
+        const topRated = await filtrarPorRating(4);
+        console.log("\n🌟 Productos con rating mayor o igual a 4:");
+        console.table(topRated);
+
+        // 📂 Exportar CSV
+        await exportarACSV("productos_exportados.csv");
+
+        // =================================================================
+        // PIE DE CIERRE FINAL
+        // =================================================================
+        console.log('\n');
+        console.log('█'.repeat(70));
+        console.log('█'.repeat(20) + '   🎉 TP2 FINALIZADO CON ÉXITO   ' + '█'.repeat(20));
+        console.log('█'.repeat(70));
+        console.log('✨ Todas las consignas + extras implementadas');
+        console.log('📄 Archivo products.json y productos_exportados.csv generados');
+        console.log('🙌 Felicitaciones, trabajo práctico completo!');
+        console.log('█'.repeat(70));
+
+    } catch (error) {
+        console.error('\n💥 Error en las funciones extra:', error.message);
+    }
 }
 
 ejecutar();
+
+console.log("Probando commit y push");
