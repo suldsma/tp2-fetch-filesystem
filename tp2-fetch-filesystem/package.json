@@ -1,14 +1,17 @@
 {
-  "name": "tp2-combinado",
+  "name": "TP_2",
   "version": "1.0.0",
-  "description": "Trabajo Práctico 2 de Programación III - Versión combinada",
+  "description": "",
+  "type": "module",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["fetch", "filesystem", "node.js", "api", "tp2"],
-  "author": "grupo A",
+  "keywords": [],
+  "author": "",
   "license": "ISC",
-  "type": "module"
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "timers": "^0.1.1"
+  }
 }
